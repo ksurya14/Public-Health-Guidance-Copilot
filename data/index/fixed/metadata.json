@@ -1,0 +1,116 @@
+{
+  "chunks": [
+    {
+      "doc_id": "DOC000",
+      "chunk_id": "DOC000_c0",
+      "text": "Title: CDC Seasonal Influenza Vaccination Overview\n\nThe Centers for Disease Control and Prevention recommends annual influenza vaccination for everyone 6 months and older, with rare exceptions. Vaccination should ideally occur before the end of October, but vaccination should continue to be offered throughout the season as long as influenza viruses are circulating.\n\nThe influenza vaccine composition is reviewed and updated yearly to match anticipated circulating strains.",
+      "section": null,
+      "start": 0,
+      "end": 475,
+      "source_path": "/Users/saiprasad/rag-final-project/data/sample_corpus/doc1_overview.txt",
+      "title": "Doc1 Overview"
+    },
+    {
+      "doc_id": "DOC001",
+      "chunk_id": "DOC001_c0",
+      "text": "Title: Timing of Influenza Vaccination\n\nVaccination should occur before influenza activity begins in the community. Adults should ideally receive influenza vaccination by the end of October.\n\nVaccination later in the season is still beneficial and should continue as long as influenza viruses are circulating and vaccine supplies are available.",
+      "section": null,
+      "start": 0,
+      "end": 344,
+      "source_path": "/Users/saiprasad/rag-final-project/data/sample_corpus/doc2_timing.txt",
+      "title": "Doc2 Timing"
+    },
+    {
+      "doc_id": "DOC002",
+      "chunk_id": "DOC002_c0",
+      "text": "Title: Storage and Handling of Influenza Vaccines\n\nInfluenza vaccines should be stored in a refrigerator at temperatures between 2°C and 8°C. Vaccines should not be frozen and should be protected from light.\n\nExpired vaccines should not be administered.",
+      "section": null,
+      "start": 0,
+      "end": 253,
+      "source_path": "/Users/saiprasad/rag-final-project/data/sample_corpus/doc3_storage.txt",
+      "title": "Doc3 Storage"
+    }
+  ],
+  "config": {
+    "project_name": "Public Health Guidance Copilot",
+    "description": "RAG system over CDC-style seasonal influenza vaccination guidance",
+    "paths": {
+      "raw_dir": "data/raw",
+      "fallback_corpus": "data/sample_corpus",
+      "index_dir": "data/index"
+    },
+    "chunking": {
+      "default_strategy": "fixed",
+      "fixed": {
+        "chunk_size": 700,
+        "overlap": 120
+      },
+      "section": {
+        "min_length": 180,
+        "max_length": 900
+      }
+    },
+    "retrieval": {
+      "top_k": 5,
+      "hybrid_weights": {
+        "bm25": 0.5,
+        "dense": 0.0
+      },
+      "use_reranker": true,
+      "rerank_top_k": 8
+    },
+    "models": {
+      "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+      "reranker_model": "cross-encoder/ms-marco-MiniLM-L-2-v2",
+      "llm_model": "gpt-3.5-turbo",
+      "llm_backend": "auto"
+    },
+    "generation": {
+      "max_context_chunks": 5,
+      "temperature": 0.2,
+      "system_prompt": "You are a careful assistant answering questions using provided public health guidance about seasonal influenza vaccination.\nUse only the provided context.\nCite sources as [doc_id:chunk_id] and include short quoted evidence.\nIf the answer is not in the context, say \"Not found in provided documents.\"\n"
+    },
+    "eval": {
+      "recall_k": 5,
+      "faithfulness_threshold": 0.45,
+      "ablations": [
+        {
+          "name": "hybrid",
+          "hybrid_weights": {
+            "bm25": 0.5,
+            "dense": 0.5
+          },
+          "chunk_strategy": "fixed",
+          "use_reranker": true
+        },
+        {
+          "name": "bm25_only",
+          "hybrid_weights": {
+            "bm25": 1.0,
+            "dense": 0.0
+          },
+          "chunk_strategy": "fixed",
+          "use_reranker": false
+        },
+        {
+          "name": "dense_only",
+          "hybrid_weights": {
+            "bm25": 0.0,
+            "dense": 1.0
+          },
+          "chunk_strategy": "fixed",
+          "use_reranker": false
+        },
+        {
+          "name": "section_chunks",
+          "hybrid_weights": {
+            "bm25": 0.5,
+            "dense": 0.5
+          },
+          "chunk_strategy": "section",
+          "use_reranker": true
+        }
+      ]
+    }
+  }
+}

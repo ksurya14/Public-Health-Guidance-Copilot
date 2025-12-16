@@ -1,0 +1,71 @@
+project_name: "Public Health Guidance Copilot"
+description: "RAG system over CDC-style seasonal influenza vaccination guidance"
+
+paths:
+  raw_dir: "data/raw"
+  fallback_corpus: "data/sample_corpus"
+  index_dir: "data/index"
+
+chunking:
+  default_strategy: "fixed"
+  fixed:
+    chunk_size: 700
+    overlap: 120
+  section:
+    min_length: 180
+    max_length: 900
+
+retrieval:
+  top_k: 5
+  hybrid_weights:
+    bm25: 0.5
+    dense: 0.0
+  use_reranker: true
+  rerank_top_k: 8
+
+models:
+  embedding_model: "sentence-transformers/all-MiniLM-L6-v2"
+  reranker_model: "cross-encoder/ms-marco-MiniLM-L-2-v2"
+  llm_model: "gpt-3.5-turbo"
+  llm_backend: "auto"
+
+generation:
+  max_context_chunks: 5
+  temperature: 0.2
+  system_prompt: |
+    You are a careful assistant answering questions using provided public health guidance about seasonal influenza vaccination.
+    Use only the provided context.
+    Cite sources as [doc_id:chunk_id] and include short quoted evidence.
+    If the answer is not in the context, say "Not found in provided documents."
+
+eval:
+  recall_k: 5
+  faithfulness_threshold: 0.45
+  ablations:
+    - name: "hybrid"
+      hybrid_weights:
+        bm25: 0.5
+        dense: 0.5
+      chunk_strategy: "fixed"
+      use_reranker: true
+
+    - name: "bm25_only"
+      hybrid_weights:
+        bm25: 1.0
+        dense: 0.0
+      chunk_strategy: "fixed"
+      use_reranker: false
+
+    - name: "dense_only"
+      hybrid_weights:
+        bm25: 0.0
+        dense: 1.0
+      chunk_strategy: "fixed"
+      use_reranker: false
+
+    - name: "section_chunks"
+      hybrid_weights:
+        bm25: 0.5
+        dense: 0.5
+      chunk_strategy: "section"
+      use_reranker: true
