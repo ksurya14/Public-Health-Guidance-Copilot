@@ -1,132 +1,127 @@
-What this project is
+# Public Health Guidance Copilot
 
-This project is a Retrieval-Augmented Generation (RAG) system built over a small set of public health documents related to influenza vaccination guidance.
+![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
+![RAG](https://img.shields.io/badge/RAG-Retrieval%20Augmented%20Generation-green)
+![Streamlit](https://img.shields.io/badge/UI-Streamlit-red)
+![License](https://img.shields.io/badge/License-MIT-lightgrey)
 
-The system does not train a machine learning model.
-Instead, it retrieves relevant text from documents and uses that text to produce an answer.
+**A transparent, deterministic Retrieval-Augmented Generation (RAG) system for grounding public health answers in official documentation.**
 
-⸻
+---
 
-What problem this solves
+## Overview
 
-Large language models can hallucinate answers.
+The **Public Health Guidance Copilot** is a specialized NLP system designed to answer questions based strictly on a small, curated set of public health documents (e.g., influenza vaccination guidelines). 
 
-This project avoids that by:
-	•	Searching official documents first
-	•	Answering only using retrieved content
+Unlike standard Large Language Models (LLMs) that generate text based on pre-training, this system uses a **Retrieval-Augmented Generation (RAG)** architecture without external APIs (like OpenAI) or model fine-tuning. It retrieves relevant text chunks from local documents and presents them alongside the answer, ensuring 100% explainability and transparency.
 
-So every answer is grounded in the source text.
+## The Problem
 
-⸻
+Large Language Models are powerful but prone to **hallucination**—generating plausible-sounding but factually incorrect information. In the domain of public health, accuracy is critical.
 
-High-level flow (in simple terms)
-	1.	Text documents are loaded
-	2.	Documents are split into smaller chunks
-	3.	A search index (BM25) is built on those chunks
-	4.	A user asks a question
-	5.	The system finds the most relevant chunks
-	6.	The answer is generated from those chunks
-	7.	The retrieved text is shown for transparency
+**This project solves that by:**
+1.  **Searching official documents first:** It never answers from "memory," only from retrieved context.
+2.  **Grounded Generation:** Every answer is derived directly from the provided source text.
+3.  **Auditability:** The system displays the exact text chunks used to form the answer.
 
-⸻
+---
 
-What “Retrieval-Augmented Generation” means here
+## ⚙️ How It Works (Architecture)
 
-Retrieval
-→ Find the most relevant document chunks for a query
+This system follows a strict **Retrieve-then-Generate** pipeline:
 
-Augmented
-→ Provide those chunks as context
+```mermaid
+graph LR
+    A[User Query] --> B(Tokenization)
+    B --> C{BM25 Retrieval}
+    D[Document Corpus] --> E[Chunking ~700 chars]
+    E --> F[Search Index]
+    F --> C
+    C --> G[Top-K Relevant Chunks]
+    G --> H[Response Generation]
+    H --> I[Final Answer + Sources]
 
-Generation
-→ Produce an answer using only that context
+```
 
-No fine-tuning, no retraining, no parameter updates.
+###1. Data Pipeline* **Ingestion:** Input documents are plain `.txt` files located in `data/sample_corpus/`.
+* **Chunking:** Documents are split into overlapping segments of approximately **700 characters**. This ensures context is preserved across boundaries.
+* **Metadata:** Each chunk retains its origin (Document ID, Position, Title).
 
-⸻
+###2. Retrieval Engine (Sparse)We utilize **BM25**, a classic probabilistic information retrieval algorithm, rather than dense vector embeddings.
 
-How documents are handled
-	•	Input documents are plain .txt files
-	•	Each document is split into chunks (~700 characters)
-	•	Overlap is used so context is not lost
-	•	Each chunk keeps metadata (document ID, position, title)
+* **Why BM25?** It is fast, interpretable, and highly effective for exact keyword matching in specific domains like medical guidance.
+* **Transparency:** Unlike "black box" neural embeddings, BM25 scoring is easy to debug and explain.
 
-⸻
+###3. Query & Response* The system scores all chunks against the user's query.
+* The **Top-K** chunks are retrieved.
+* The answer is constructed using *only* these chunks.
 
-Retrieval method used
+---
 
-BM25 (sparse retrieval)
-	•	BM25 is a classic information retrieval algorithm
-	•	It scores chunks based on keyword relevance
-	•	Works well for structured and factual text
-	•	Fast and explainable
+## Installation & Usage###Prerequisites* Python 3.8+
+* Git
 
-Why BM25 was chosen
-	•	Simple
-	•	Transparent
-	•	Easy to debug
-	•	Sufficient for small public health corpora
+###1. Clone the Repository```bash
+git clone [https://github.com/ksurya14/Public-Health-Guidance-Copilot.git](https://github.com/ksurya14/Public-Health-Guidance-Copilot.git)
+cd Public-Health-Guidance-Copilot
 
-(Dense / embedding-based retrieval was intentionally disabled to keep the system lightweight and stable.)
+```
 
-⸻
+###2. Install Dependencies```bash
+pip install -r requirements.txt
 
-What happens at query time
-	1.	User enters a question
-	2.	Query is tokenized
-	3.	BM25 scores all chunks
-	4.	Top-K chunks are selected
-	5.	Answer is constructed using retrieved chunks
-	6.	Retrieved sources are displayed
+```
 
-⸻
+###3. Build the IndexBefore running the app, process the documents and build the BM25 index:
 
-What the system returns
-	•	A natural language answer
-	•	The text chunks used to form the answer
-	•	Source document references
+```bash
+# Using Makefile
+make index
 
-This makes the system auditable and explainable.
+# OR using python directly
+python src/index.py
 
-⸻
+```
 
-What this project does NOT do
-	•	Does not train a neural network
-	•	Does not fine-tune a language model
-	•	Does not call OpenAI or external APIs
-	•	Does not hallucinate outside the corpus
+###4. Run the InterfaceLaunch the Streamlit web app:
 
-⸻
+```bash
+streamlit run app/streamlit_app.py
 
-Can more data be added?
+```
 
-Yes.
+---
 
-To add more knowledge:
-	1.	Add new .txt files to data/sample_corpus/
-	2.	Re-run indexing (make index)
-	3.	Restart the app
+## Adding New KnowledgeThis system is data-centric. You do not need to change code to add new information.
 
-No code changes needed.
+1. Add new `.txt` files to the `data/sample_corpus/` directory.
+2. Re-run the indexing command: `make index`.
+3. Restart the Streamlit app.
 
-⸻
+The system will immediately be aware of the new guidance.
 
-Why this is suitable for an academic project
-	•	Demonstrates NLP concepts clearly
-	•	Shows retrieval vs generation separation
-	•	Avoids black-box models
-	•	Easy to explain and justify
-	•	Reproducible on any machine
+---
 
-⸻
+## Project Scope & Limitations###What this project DOES Implements a full RAG pipeline (Ingestion \to Retrieval \to Generation).
 
-Current status
-	•	Indexing works
-	•	Retrieval works
-	•	UI works
-	•	End-to-end pipeline complete
-	•	Ready for presentation and report
+- Uses **sparse retrieval (BM25)** for explainability.
 
-⸻
+- Provides a UI for side-by-side verification of answers and sources.
 
-“We implemented a RAG pipeline using BM25-based sparse retrieval over chunked public health documents. Queries retrieve top-K relevant chunks, which are then used to generate grounded answers without model training or external APIs.”
+- Runs entirely locally.
+
+###What this project does NOT do **No Neural Training:** We do not train or fine-tune a neural network.
+
+ **No External APIs:** We do not call OpenAI, Anthropic, or other paid APIs.
+
+ **No "Magic":** The system does not hallucinate knowledge outside of its provided corpus.
+
+---
+
+## Academic Context* **Course:** DATA 641 (Natural Language Processing)
+* **Concept:** Retrieval-Augmented Generation (RAG) & Information Retrieval
+* **Goal:** To demonstrate the separation of *knowledge retrieval* from *answer generation* in a safety-critical domain.
+
+---
+
+## Contributors* **Team:** Parse and Conquer (Suryateja Konduri, Siva Durga Sai Prasad Buthada, Pravalika Sure  Rohan Ambati)
